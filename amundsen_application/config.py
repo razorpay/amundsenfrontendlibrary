@@ -38,6 +38,8 @@ class Config:
 
     # Number of popular tables to be displayed on the index/search page
     POPULAR_TABLE_COUNT = 4  # type: int
+    # Personalize the popular tables response for the current authenticated user
+    POPULAR_TABLE_PERSONALIZATION = False  # type: bool
 
     # Request Timeout Configurations in Seconds
     REQUEST_SESSION_TIMEOUT_SEC = 3
@@ -61,6 +63,16 @@ class Config:
 
     # Initialize custom routes
     INIT_CUSTOM_ROUTES = None  # type: Callable[[Flask], None]
+
+    # Settings for Preview Client integration
+    PREVIEW_CLIENT_ENABLED = os.getenv('PREVIEW_CLIENT_ENABLED') == 'true'  # type: bool
+    # Maps to a class path and name
+    PREVIEW_CLIENT = os.getenv('PREVIEW_CLIENT', None)  # type: Optional[str]
+
+    # Settings for Announcement Client integration
+    ANNOUNCEMENT_CLIENT_ENABLED = os.getenv('ANNOUNCEMENT_CLIENT_ENABLED') == 'true'  # type: bool
+    # Maps to a class path and name
+    ANNOUNCEMENT_CLIENT = os.getenv('ANNOUNCEMENT_CLIENT', None)  # type: Optional[str]
 
     # Settings for Issue tracker integration
     ISSUE_LABELS = []  # type: List[str]
@@ -100,6 +112,16 @@ class Config:
     # e.g: ACL_ENABLED_DASHBOARD_PREVIEW = {'ModePreview'}
     ACL_ENABLED_DASHBOARD_PREVIEW = set()  # type: Set[Optional[str]]
 
+    MTLS_CLIENT_CERT = os.getenv('MTLS_CLIENT_CERT')
+    """
+    Optional.
+    The path to a PEM formatted certificate to present when calling the metadata and search services.
+    MTLS_CLIENT_KEY must also be set.
+    """
+
+    MTLS_CLIENT_KEY = os.getenv('MTLS_CLIENT_KEY')
+    """Optional. The path to a PEM formatted key to use with the MTLS_CLIENT_CERT. MTLS_CLIENT_CERT must also be set."""
+
 
 class LocalConfig(Config):
     DEBUG = False
@@ -135,6 +157,7 @@ class LocalConfig(Config):
 
 
 class TestConfig(LocalConfig):
+    POPULAR_TABLE_PERSONALIZATION = True
     AUTH_USER_METHOD = get_test_user
     NOTIFICATIONS_ENABLED = True
     ISSUE_TRACKER_URL = 'test_url'

@@ -4,17 +4,16 @@
 import * as React from 'react';
 import * as ReactMarkdown from 'react-markdown';
 import * as History from 'history';
-
 import { shallow } from 'enzyme';
 
-import LoadingSpinner from 'components/common/LoadingSpinner';
-import Breadcrumb from 'components/common/Breadcrumb';
-import BookmarkIcon from 'components/common/Bookmark/BookmarkIcon';
-import ResourceList from 'components/common/ResourceList';
-import TabsComponent from 'components/common/TabsComponent';
+import LoadingSpinner from 'components/LoadingSpinner';
+import Breadcrumb from 'components/Breadcrumb';
+import BookmarkIcon from 'components/Bookmark/BookmarkIcon';
+import ResourceList from 'components/ResourceList';
+import TabsComponent from 'components/TabsComponent';
 import { dashboardMetadata } from 'fixtures/metadata/dashboard';
-import { NO_TIMESTAMP_TEXT } from 'components/constants';
 import { ResourceType } from 'interfaces';
+import { NO_TIMESTAMP_TEXT } from '../../constants';
 import ChartList from './ChartList';
 import DashboardOwnerEditor from './DashboardOwnerEditor';
 import ImagePreview from './ImagePreview';
@@ -168,9 +167,6 @@ describe('DashboardPage', () => {
       it('using a ReactMarkdown component', () => {
         const markdown = wrapper.find(ReactMarkdown);
         expect(markdown.exists()).toBe(true);
-        expect(markdown.props()).toMatchObject({
-          source: props.dashboard.description,
-        });
       });
 
       it('with link to add description if none exists', () => {

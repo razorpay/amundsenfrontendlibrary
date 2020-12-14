@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import * as DocumentTitle from 'react-document-title';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -10,8 +11,11 @@ import { RouteComponentProps } from 'react-router';
 import { GlobalState } from 'ducks/rootReducer';
 import { getTableData } from 'ducks/tableMetadata/reducer';
 import { openRequestDescriptionDialog } from 'ducks/notification/reducer';
+import { updateSearchState } from 'ducks/search/reducer';
 import { GetTableDataRequest } from 'ducks/tableMetadata/types';
 import { OpenRequestAction } from 'ducks/notification/types';
+import { UpdateSearchStateRequest } from 'ducks/search/types';
+import { logClick } from 'ducks/utilMethods';
 
 import {
   getDescriptionSourceDisplayName,
@@ -23,15 +27,15 @@ import {
   notificationsEnabled,
 } from 'config/config-utils';
 
-import BadgeList from 'components/common/BadgeList';
-import BookmarkIcon from 'components/common/Bookmark/BookmarkIcon';
-import Breadcrumb from 'components/common/Breadcrumb';
-import TabsComponent, { TabInfo } from 'components/common/TabsComponent';
-import TagInput from 'components/common/Tags/TagInput';
-import EditableText from 'components/common/EditableText';
-import LoadingSpinner from 'components/common/LoadingSpinner';
-import EditableSection from 'components/common/EditableSection';
-import ColumnList from 'components/ColumnList';
+import BadgeList from 'features/BadgeList';
+import BookmarkIcon from 'components/Bookmark/BookmarkIcon';
+import Breadcrumb from 'components/Breadcrumb';
+import TabsComponent, { TabInfo } from 'components/TabsComponent';
+import TagInput from 'components/Tags/TagInput';
+import EditableText from 'components/EditableText';
+import LoadingSpinner from 'components/LoadingSpinner';
+import EditableSection from 'components/EditableSection';
+import ColumnList from 'features/ColumnList';
 
 import { formatDateTimeShort } from 'utils/dateUtils';
 import { getLoggingParams } from 'utils/logUtils';
@@ -77,7 +81,7 @@ export interface PropsFromState {
   isLoading: boolean;
   isLoadingDashboards: boolean;
   numRelatedDashboards: number;
-  statusCode?: number;
+  statusCode: number | null;
   tableData: TableMetadata;
 }
 export interface DispatchFromProps {
@@ -90,6 +94,7 @@ export interface DispatchFromProps {
     requestMetadataType: RequestMetadataType,
     columnName: string
   ) => OpenRequestAction;
+  searchSchema: (schemaText: string) => UpdateSearchStateRequest;
 }
 
 export interface MatchProps {
@@ -131,26 +136,29 @@ export class TableDetail extends React.Component<
   };
 
   componentDidMount() {
-    const { index, source } = getLoggingParams(this.props.location.search);
+    const { location, getTableData } = this.props;
+    const { index, source } = getLoggingParams(location.search);
 
     this.key = this.getTableKey();
-    this.props.getTableData(this.key, index, source);
+    getTableData(this.key, index, source);
     this.didComponentMount = true;
   }
 
   componentDidUpdate() {
+    const { location, getTableData } = this.props;
     const newKey = this.getTableKey();
 
     if (this.key !== newKey) {
-      const { index, source } = getLoggingParams(this.props.location.search);
+      const { index, source } = getLoggingParams(location.search);
 
       this.key = newKey;
-      this.props.getTableData(this.key, index, source);
+      getTableData(this.key, index, source);
     }
   }
 
   getDisplayName() {
-    const { params } = this.props.match;
+    const { match } = this.props;
+    const { params } = match;
 
     return `${params.schema}.${params.table}`;
   }
@@ -161,10 +169,22 @@ export class TableDetail extends React.Component<
     we can't pass it as a single URL parameter without encodeURIComponent which makes ugly URLs.
     DO NOT CHANGE
     */
-    const { params } = this.props.match;
+    const { match } = this.props;
+    const { params } = match;
 
     return `${params.database}://${params.cluster}.${params.schema}/${params.table}`;
   }
+
+  handleClick = (e) => {
+    const { match } = this.props;
+    const { params } = match;
+    const schemaText = params.schema;
+    logClick(e, {
+      target_type: 'schema',
+      label: schemaText,
+    });
+    this.props.searchSchema(schemaText);
+  };
 
   renderProgrammaticDesc = (
     descriptions: ProgrammaticDescription[] | undefined
@@ -175,12 +195,7 @@ export class TableDetail extends React.Component<
 
     return descriptions.map((d) => (
       <EditableSection key={`prog_desc:${d.source}`} title={d.source} readOnly>
-        <EditableText
-          maxLength={999999}
-          value={d.text}
-          editable={false}
-          onSubmitValue={null}
-        />
+        <EditableText maxLength={999999} value={d.text} editable={false} />
       </EditableSection>
     ));
   };
@@ -274,6 +289,13 @@ export class TableDetail extends React.Component<
             data.source.source_type
           )}`
         : '';
+      const ownersEditText = data.source
+        ? // TODO rename getDescriptionSourceDisplayName to more generic since
+          // owners also edited on the same file?
+          `${Constants.EDIT_OWNERS_TEXT} ${getDescriptionSourceDisplayName(
+            data.source.source_type
+          )}`
+        : '';
       const editUrl = data.source ? data.source.source : '';
 
       innerContent = (
@@ -290,8 +312,14 @@ export class TableDetail extends React.Component<
               />
             </div>
             <div className="header-section header-title">
-              <h1 className="header-title-text truncated">
-                {this.getDisplayName()}
+              <h1
+                className="header-title-text truncated"
+                title={`${data.schema}.${data.name}`}
+              >
+                <Link to="/search" onClick={this.handleClick}>
+                  {data.schema}
+                </Link>
+                .{data.name}
               </h1>
               <BookmarkIcon
                 bookmarkKey={data.key}
@@ -323,7 +351,7 @@ export class TableDetail extends React.Component<
                 title={Constants.DESCRIPTION_TITLE}
                 readOnly={!data.is_editable}
                 editText={editText}
-                editUrl={editUrl}
+                editUrl={editUrl || undefined}
               >
                 <TableDescEditableText
                   maxLength={getMaxLength('tableDescLength')}
@@ -367,7 +395,7 @@ export class TableDetail extends React.Component<
                   <EditableSection title={Constants.TAG_TITLE}>
                     <TagInput
                       resourceType={ResourceType.table}
-                      uriKey={this.props.tableData.key}
+                      uriKey={tableData.key}
                     />
                   </EditableSection>
                   {this.renderProgrammaticDesc(
@@ -375,7 +403,12 @@ export class TableDetail extends React.Component<
                   )}
                 </section>
                 <section className="right-panel">
-                  <EditableSection title={Constants.OWNERS_TITLE}>
+                  <EditableSection
+                    title={Constants.OWNERS_TITLE}
+                    readOnly={!data.is_editable}
+                    editText={ownersEditText}
+                    editUrl={editUrl || undefined}
+                  >
                     <TableOwnerEditor resourceType={ResourceType.table} />
                   </EditableSection>
                   <section className="metadata-section">
@@ -433,7 +466,17 @@ export const mapStateToProps = (state: GlobalState) => {
 
 export const mapDispatchToProps = (dispatch: any) => {
   return bindActionCreators(
-    { getTableData, openRequestDescriptionDialog },
+    {
+      getTableData,
+      openRequestDescriptionDialog,
+      searchSchema: (schemaText: string) =>
+        updateSearchState({
+          filters: {
+            [ResourceType.table]: { schema: schemaText },
+          },
+          submitSearch: true,
+        }),
+    },
     dispatch
   );
 };

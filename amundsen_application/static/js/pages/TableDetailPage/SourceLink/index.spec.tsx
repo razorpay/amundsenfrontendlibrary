@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { mount } from 'enzyme';
 
-import AvatarLabel from 'components/common/AvatarLabel';
+import AvatarLabel from 'components/AvatarLabel';
 import AppConfig from 'config/config';
 import { ResourceType } from 'interfaces/Resources';
 import SourceLink, { SourceLinkProps } from '.';
@@ -43,7 +43,7 @@ describe('render SourceLink', () => {
       const actual = wrapper
         .find('.header-link')
         .getDOMNode()
-        .attributes.getNamedItem('href').value;
+        .attributes.getNamedItem('href')?.value;
 
       expect(actual).toEqual(expected);
     });

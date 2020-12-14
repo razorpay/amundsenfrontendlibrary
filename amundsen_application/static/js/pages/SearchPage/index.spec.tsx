@@ -4,7 +4,6 @@
 import * as React from 'react';
 import * as DocumentTitle from 'react-document-title';
 import * as History from 'history';
-
 import { shallow } from 'enzyme';
 
 import { ResourceType } from 'interfaces';
@@ -12,7 +11,7 @@ import { ResourceType } from 'interfaces';
 import ResourceSelector from 'pages/SearchPage/ResourceSelector';
 import SearchFilter from 'pages/SearchPage/SearchFilter';
 import SearchPanel from 'pages/SearchPage/SearchPanel';
-import PaginatedApiResourceList from 'components/common/ResourceList/PaginatedApiResourceList';
+import PaginatedApiResourceList from 'components/ResourceList/PaginatedApiResourceList';
 
 import globalState from 'fixtures/globalState';
 import {
@@ -67,7 +66,7 @@ describe('SearchPage', () => {
     let wrapper;
 
     beforeAll(() => {
-      ({ props, wrapper } = setup(null, {
+      ({ props, wrapper } = setup(undefined, {
         search: '/search?searchTerm=testName&resource=table&pageIndex=1',
       }));
     });
@@ -84,7 +83,7 @@ describe('SearchPage', () => {
     let mockPrevProps;
 
     beforeAll(() => {
-      ({ props, wrapper } = setup(null, {
+      ({ props, wrapper } = setup(undefined, {
         search: '/search?searchTerm=testName&resource=table&pageIndex=1',
       }));
       mockPrevProps = {
@@ -267,7 +266,11 @@ describe('SearchPage', () => {
         resource: ResourceType.table,
       });
       const getTabContentSpy = jest.spyOn(wrapper.instance(), 'getTabContent');
-      shallow(wrapper.instance().renderSearchResults());
+      const rendered = wrapper.instance().renderSearchResults();
+      if (rendered === null) {
+        throw Error('renderSearchResults returned null');
+      }
+      shallow(rendered);
       expect(getTabContentSpy).toHaveBeenCalledWith(
         props.tables,
         ResourceType.table
@@ -279,7 +282,11 @@ describe('SearchPage', () => {
         resource: ResourceType.user,
       });
       const getTabContentSpy = jest.spyOn(wrapper.instance(), 'getTabContent');
-      shallow(wrapper.instance().renderSearchResults());
+      const rendered = wrapper.instance().renderSearchResults();
+      if (rendered === null) {
+        throw Error('renderSearchResults returned null');
+      }
+      shallow(rendered);
       expect(getTabContentSpy).toHaveBeenCalledWith(
         props.users,
         ResourceType.user
@@ -291,7 +298,11 @@ describe('SearchPage', () => {
         resource: ResourceType.dashboard,
       });
       const getTabContentSpy = jest.spyOn(wrapper.instance(), 'getTabContent');
-      shallow(wrapper.instance().renderSearchResults());
+      const rendered = wrapper.instance().renderSearchResults();
+      if (rendered === null) {
+        throw Error('renderSearchResults returned null');
+      }
+      shallow(rendered);
       expect(getTabContentSpy).toHaveBeenCalledWith(
         props.dashboards,
         ResourceType.dashboard
@@ -300,7 +311,7 @@ describe('SearchPage', () => {
 
     it('renders null for an invalid resource', () => {
       const { wrapper } = setup({
-        resource: null,
+        resource: undefined,
       });
       const renderedSearchResults = wrapper.instance().renderSearchResults();
       expect(renderedSearchResults).toBe(null);

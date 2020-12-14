@@ -28,6 +28,7 @@ const PATHS = {
   dist: resolve('/dist'),
   pages: resolve('/js/pages'),
   components: resolve('/js/components'),
+  features: resolve('/js/features'),
   config: resolve('/js/config'),
   ducks: resolve('/js/ducks'),
   interfaces: resolve('/js/interfaces'),
@@ -36,7 +37,7 @@ const PATHS = {
 };
 
 // Process of Templates
-const walkSync = (dir, filelist = []) => {
+const walkSync = (dir: string, filelist: string[] = []) => {
   fs.readdirSync(dir).forEach((file) => {
     filelist = fs.statSync(path.join(dir, file)).isDirectory()
       ? walkSync(path.join(dir, file), filelist)
@@ -68,12 +69,17 @@ const config: webpack.Configuration = {
     alias: {
       pages: PATHS.pages,
       components: PATHS.components,
+      features: PATHS.features,
       config: PATHS.config,
       ducks: PATHS.ducks,
       interfaces: PATHS.interfaces,
       utils: PATHS.utils,
     },
     extensions: RESOLVED_EXTENSIONS,
+    fallback: {
+      // Needed by react-markdown as of 5.0.2
+      path: require.resolve('path-browserify'),
+    },
   },
   module: {
     rules: [
@@ -109,15 +115,28 @@ const config: webpack.Configuration = {
         test: FONT_PATTERN,
         use: 'file-loader',
       },
+      // Hacky, required for react-bootstrap @ 0.33.1 - remove after upgrading,
+      // see: https://github.com/webpack/webpack/issues/11467
+      // Tracked at https://github.com/amundsen-io/amundsen/issues/818
+      {
+        test: /\.m?js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
     ],
   },
   plugins: [
     new CleanWebpackPlugin(),
     new MomentLocalesPlugin(), // To strip all locales except “en”
     ...htmlWebpackPluginConfig,
+    // fix "process is not defined" error:
+    new webpack.ProvidePlugin({
+      process: 'process/browser',
+    }),
   ],
   optimization: {
-    moduleIds: 'hashed',
+    moduleIds: 'deterministic',
     splitChunks: {
       cacheGroups: {
         default: false,

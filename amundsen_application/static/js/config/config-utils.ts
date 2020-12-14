@@ -3,7 +3,7 @@ import { BadgeStyle, BadgeStyleConfig } from 'config/config-types';
 import { TableMetadata } from 'interfaces/TableMetadata';
 import { convertText, CaseType } from 'utils/textUtils';
 
-import { FilterConfig, LinkConfig } from './config-types';
+import { AnalyticsConfig, FilterConfig, LinkConfig } from './config-types';
 
 import { ResourceType } from '../interfaces';
 
@@ -72,8 +72,15 @@ export function getDisplayNameByResource(resourceType: ResourceType): string {
  */
 export function getFilterConfigByResource(
   resourceType: ResourceType
-): FilterConfig {
+): FilterConfig | undefined {
   return AppConfig.resourceConfig[resourceType].filterCategories;
+}
+
+/**
+ * Returns AnalyticsConfig.
+ */
+export function getAnalyticsConfig(): AnalyticsConfig {
+  return AppConfig.analytics;
 }
 
 /*
@@ -82,7 +89,7 @@ export function getFilterConfigByResource(
  * use BadgeStyle.DEFAULT and badge name as display name.
  */
 export function getBadgeConfig(badgeName: string): BadgeStyleConfig {
-  const config = AppConfig.badges[badgeName] || {};
+  const config: object = AppConfig.badges[badgeName] || {};
 
   return {
     style: BadgeStyle.DEFAULT,

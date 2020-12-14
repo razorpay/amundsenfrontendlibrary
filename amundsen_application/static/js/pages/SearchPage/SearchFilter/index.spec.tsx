@@ -16,7 +16,7 @@ import {
   mapStateToProps,
   SearchFilter,
   SearchFilterProps,
-  FilterSection,
+  FilterSectionItem,
   CheckboxFilterSection,
 } from '.';
 
@@ -28,8 +28,14 @@ describe('SearchFilter', () => {
           categoryId: 'database',
           helpText: 'This is what to do',
           options: [
-            { value: 'bigquery', label: 'BigQuery' },
-            { value: 'hive', label: 'Hive' },
+            {
+              value: 'bigquery',
+              label: 'BigQuery',
+            },
+            {
+              value: 'hive',
+              label: 'Hive',
+            },
           ],
           title: 'Source',
           type: FilterType.CHECKBOX_SELECT,
@@ -43,8 +49,12 @@ describe('SearchFilter', () => {
       ],
       ...propOverrides,
     };
+    // eslint-disable-next-line react/jsx-props-no-spreading
     const wrapper = shallow<SearchFilter>(<SearchFilter {...props} />);
-    return { props, wrapper };
+    return {
+      props,
+      wrapper,
+    };
   };
 
   describe('createFilterSection', () => {
@@ -52,7 +62,7 @@ describe('SearchFilter', () => {
     let wrapper;
     let content;
     let mockCheckboxFilterData: CheckboxFilterSection;
-    let mockInputFilterData: FilterSection;
+    let mockInputFilterData: FilterSectionItem;
     beforeAll(() => {
       const setupResult = setup();
       props = setupResult.props;
@@ -127,13 +137,11 @@ describe('SearchFilter', () => {
   });
 
   describe('render', () => {
-    let props;
     let wrapper;
     let renderFilterSectionsSpy;
 
     beforeAll(() => {
       const setupResult = setup();
-      props = setupResult.props;
       wrapper = setupResult.wrapper;
       renderFilterSectionsSpy = jest.spyOn(
         wrapper.instance(),
@@ -223,6 +231,7 @@ describe('mapStateToProps', () => {
       {
         categoryId: mockSchemaId,
         helpText: mockHelpText,
+        options: [],
         title: mockSchemaTitle,
         type: FilterType.INPUT_SELECT,
       },

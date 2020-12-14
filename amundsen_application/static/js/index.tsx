@@ -12,6 +12,8 @@ import { createStore, applyMiddleware } from 'redux';
 import { Router, Route, Switch } from 'react-router-dom';
 import DocumentTitle from 'react-document-title';
 
+import { analyticsMiddleware } from 'ducks/middlewares';
+
 import { BrowserHistory } from 'utils/navigationUtils';
 
 import DashboardPage from './pages/DashboardPage';
@@ -23,9 +25,9 @@ import SearchPage from './pages/SearchPage';
 import ProfilePage from './pages/ProfilePage';
 import TableDetail from './pages/TableDetailPage';
 
-import Preloader from './components/common/Preloader';
-import Footer from './components/Footer';
-import NavBar from './components/NavBar';
+import Preloader from './components/Preloader';
+import Footer from './features/Footer';
+import NavBar from './features/NavBar';
 
 import rootReducer from './ducks/rootReducer';
 import rootSaga from './ducks/rootSaga';
@@ -33,6 +35,7 @@ import rootSaga from './ducks/rootSaga';
 const sagaMiddleware = createSagaMiddleware();
 const createStoreWithMiddleware = applyMiddleware(
   ReduxPromise,
+  analyticsMiddleware,
   sagaMiddleware
 )(createStore);
 const store = createStoreWithMiddleware(rootReducer);

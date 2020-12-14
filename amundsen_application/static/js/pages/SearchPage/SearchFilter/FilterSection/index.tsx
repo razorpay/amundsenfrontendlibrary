@@ -12,7 +12,7 @@ import {
 
 import { GlobalState } from 'ducks/rootReducer';
 import { FilterType, IconSizes } from 'interfaces';
-import InfoButton from 'components/common/InfoButton';
+import InfoButton from 'components/InfoButton';
 import { CLEAR_BTN_TEXT } from '../constants';
 
 import CheckBoxFilter, { CheckboxFilterProperties } from '../CheckBoxFilter';
@@ -49,7 +49,10 @@ export class FilterSection extends React.Component<FilterSectionProps> {
     }
     if (type === FilterType.CHECKBOX_SELECT) {
       return (
-        <CheckBoxFilter categoryId={categoryId} checkboxProperties={options} />
+        <CheckBoxFilter
+          categoryId={categoryId}
+          checkboxProperties={options || []}
+        />
       );
     }
   };

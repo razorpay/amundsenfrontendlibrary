@@ -4,8 +4,8 @@
 import * as React from 'react';
 import { connect } from 'react-redux';
 
-import ResourceList from 'components/common/ResourceList';
-import ShimmeringResourceLoader from 'components/common/ShimmeringResourceLoader';
+import ResourceList from 'components/ResourceList';
+import ShimmeringResourceLoader from 'components/ShimmeringResourceLoader';
 
 import { GlobalState } from 'ducks/rootReducer';
 
@@ -19,7 +19,7 @@ interface OwnProps {
 interface StateFromProps {
   dashboards: DashboardResource[];
   isLoading: boolean;
-  errorText: string;
+  errorText?: string;
 }
 
 export type TableDashboardResourceListProps = StateFromProps & OwnProps;
@@ -62,7 +62,6 @@ export const mapStateToProps = (state: GlobalState) => {
   };
 };
 
-export default connect<StateFromProps, {}, OwnProps>(
-  mapStateToProps,
-  null
-)(TableDashboardResourceList);
+export default connect<StateFromProps, {}, OwnProps>(mapStateToProps)(
+  TableDashboardResourceList
+);
