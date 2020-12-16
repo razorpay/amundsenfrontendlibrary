@@ -11,7 +11,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Login with docker
-        run: docker login ${REGISTRY} -u ${{ secrets.HARBOR_DOCKER_USERNAME }} -p ${{ secrets.HARBOR_DOCKER_PASSWORD }}
+        run: docker login ${REGISTRY} --username ${{ secrets.HARBOR_DOCKER_USERNAME }} --password ${{ secrets.HARBOR_DOCKER_PASSWORD }}
       - name: Build and Push docker image
         if: success()
         run: |
