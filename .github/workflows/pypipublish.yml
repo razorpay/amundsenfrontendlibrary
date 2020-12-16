@@ -5,8 +5,6 @@ jobs:
   build-and-publish-docker-image:
     name: Build and publish docker image
     runs-on: ubuntu-18.04
-    env:
-      REGISTRY: c.rzp.io
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -14,9 +12,6 @@ jobs:
         uses: docker/build-push-action@v1
         with:
           dockerfile: public.Dockerfile
-          registry: c.rzp.io
           repository: razorpay/amundsen-frontend
-          username: ${{ secrets.HARBOR_DOCKER_USERNAME }}
-          password: ${{ secrets.HARBOR_DOCKER_PASSWORD }}
           tags: oidc-${{ github.sha }}
           target: oidc-release
