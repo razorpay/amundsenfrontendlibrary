@@ -1,6 +1,6 @@
 
 name: Build and Deploy
-on: [push, pull_request]
+on: [push]
 jobs:
   build-and-publish-docker-image:
     name: Build and publish docker image
@@ -10,15 +10,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Login with docker
-        run: docker login ${REGISTRY} --username ${{ secrets.HARBOR_DOCKER_USERNAME }} --password ${{ secrets.HARBOR_DOCKER_PASSWORD }}
-      - name: Build and Push docker image
-        if: success()
-        run: |
-          docker build -f public.Dockerfile --target=oidc-release -t ${REGISTRY}/razorpay/amundsen-frontend-oidc:${GITHUB_SHA} .
-          docker push ${REGISTRY}/razorpay/amundsen-frontend-oidc:${GITHUB_SHA}
-      - name: Publish to Registry for latest
-        if: success() && github.ref == 'refs/heads/master'
-        run: |
-          docker build -f public.Dockerfile --target=oidc-release -t ${REGISTRY}/razorpay/amundsen-frontend-oidc:latest .
-          docker push ${REGISTRY}/razorpay/amundsen-frontend-oidc:latest
+      - name: Build and Push Docker Image to Harbor
+        uses: docker/build-push-action@v1
+        with:
+          dockerfile: public.Dockerfile
+          registry: c.rzp.io
+          repository: razorpay/amundsen-frontend
+          username: ${{ secrets.HARBOR_DOCKER_USERNAME }}
+          password: ${{ secrets.HARBOR_DOCKER_PASSWORD }}
+          tags: oidc-${{ github.sha }}
+          target: oidc-release
