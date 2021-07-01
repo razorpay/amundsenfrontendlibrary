@@ -3,20 +3,25 @@
 
 import * as React from 'react';
 import { Dropdown, MenuItem } from 'react-bootstrap';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 
 import { OpenRequestAction } from 'ducks/notification/types';
+import { GetColumnLineageRequest } from 'ducks/tableMetadata/types';
+import { getColumnLineage } from 'ducks/tableMetadata/reducer';
 
 import EditableSection from 'components/EditableSection';
 import Table, {
   TableColumn as ReusableTableColumn,
   TextAlignmentValues,
 } from 'components/Table';
+import ExpandableUniqueValues from 'features/ExpandableUniqueValues';
 
-import { logAction } from 'ducks/utilMethods';
 import {
   notificationsEnabled,
   getMaxLength,
   getTableSortCriterias,
+  isColumnListLineageEnabled,
 } from 'config/config-utils';
 
 import {
@@ -29,6 +34,9 @@ import {
 } from 'interfaces';
 
 import BadgeList from 'features/BadgeList';
+import { getUniqueValues, filterOutUniqueValues } from 'utils/stats';
+import { logAction } from 'utils/analytics';
+import ColumnLineage from 'features/ColumnList/ColumnLineage';
 import ColumnType from './ColumnType';
 import ColumnDescEditableText from './ColumnDescEditableText';
 import ColumnStats from './ColumnStats';
@@ -42,7 +50,7 @@ import {
 
 import './styles.scss';
 
-export interface ColumnListProps {
+export interface ComponentProps {
   columns: TableColumn[];
   openRequestDescriptionDialog: (
     requestMetadataType: RequestMetadataType,
@@ -52,7 +60,17 @@ export interface ColumnListProps {
   editText?: string;
   editUrl?: string;
   sortBy?: SortCriteria;
+  tableKey: string;
 }
+
+export interface DispatchFromProps {
+  getColumnLineageDispatch: (
+    key: string,
+    columnName: string
+  ) => GetColumnLineageRequest;
+}
+
+export type ColumnListProps = ComponentProps & DispatchFromProps;
 
 type ContentType = {
   title: string;
@@ -75,6 +93,7 @@ type FormattedDataType = {
   editUrl: string | null;
   index: number;
   name: string;
+  tableKey: string;
   sort_order: string;
   isEditable: boolean;
   badges: Badge[];
@@ -98,9 +117,7 @@ const getSortingFunction = (
   formattedData: FormattedDataType[],
   sortBy: SortCriteria
 ) => {
-  const numberSortingFunction = (a, b) => {
-    return b[sortBy.key] - a[sortBy.key];
-  };
+  const numberSortingFunction = (a, b) => b[sortBy.key] - a[sortBy.key];
 
   const stringSortingFunction = (a, b) => {
     if (a[sortBy.key] && b[sortBy.key]) {
@@ -118,36 +135,24 @@ const getSortingFunction = (
     : stringSortingFunction;
 };
 
-const hasColumnWithBadge = (columns: TableColumn[]) => {
-  return columns.some((col) => {
+const hasColumnWithBadge = (columns: TableColumn[]) =>
+  columns.some((col) => {
     if (col.badges) {
       return col.badges.length > 0;
     }
     return false;
   });
-};
 
 const getUsageStat = (item) => {
   const hasItemStats = !!item.stats.length;
 
   if (hasItemStats) {
-    const usageStat = item.stats.find((s) => {
-      return s.stat_type === USAGE_STAT_TYPE;
-    });
+    const usageStat = item.stats.find((s) => s.stat_type === USAGE_STAT_TYPE);
 
     return usageStat ? +usageStat.stat_val : null;
   }
 
   return null;
-};
-
-const handleRowExpand = (rowValues) => {
-  logAction({
-    command: 'click',
-    label: `${rowValues.content.title} ${rowValues.type.type}`,
-    target_id: `column::${rowValues.content.title}`,
-    target_type: 'column stats',
-  });
 };
 
 // @ts-ignore
@@ -166,6 +171,8 @@ const ExpandedRowComponent: React.FC<ExpandedRowProps> = (
 
     return true;
   };
+  const normalStats = rowValue.stats && filterOutUniqueValues(rowValue.stats);
+  const uniqueValueStats = rowValue.stats && getUniqueValues(rowValue.stats);
 
   return (
     <div className="expanded-row-container">
@@ -184,7 +191,16 @@ const ExpandedRowComponent: React.FC<ExpandedRowProps> = (
           />
         </EditableSection>
       )}
-      {rowValue.stats && <ColumnStats stats={rowValue.stats} />}
+      {normalStats && <ColumnStats stats={normalStats} />}
+      {uniqueValueStats && (
+        <ExpandableUniqueValues uniqueValues={uniqueValueStats} />
+      )}
+      {isColumnListLineageEnabled() && (
+        <ColumnLineage
+          tableKey={rowValue.tableKey}
+          columnName={rowValue.name}
+        />
+      )}
     </div>
   );
 };
@@ -196,12 +212,15 @@ const ColumnList: React.FC<ColumnListProps> = ({
   editUrl,
   openRequestDescriptionDialog,
   sortBy = DEFAULT_SORTING,
+  tableKey,
+  getColumnLineageDispatch,
 }: ColumnListProps) => {
   const hasColumnBadges = hasColumnWithBadge(columns);
   const formattedData: FormattedDataType[] = columns.map((item, index) => {
     const hasItemStats = !!item.stats.length;
 
     return {
+      tableKey,
       content: {
         title: item.name,
         description: item.description,
@@ -323,6 +342,21 @@ const ColumnList: React.FC<ColumnListProps> = ({
     ];
   }
 
+  const openedColumnsMap = {};
+  const handleRowExpand = (rowValues) => {
+    if (openedColumnsMap[rowValues.name]) {
+      return;
+    }
+    openedColumnsMap[rowValues.name] = true;
+    logAction({
+      command: 'click',
+      label: `${rowValues.content.title} ${rowValues.type.type}`,
+      target_id: `column::${rowValues.content.title}`,
+      target_type: 'column stats',
+    });
+    getColumnLineageDispatch(rowValues.tableKey, rowValues.name);
+  };
+
   return (
     <Table
       columns={formattedColumns}
@@ -338,4 +372,10 @@ const ColumnList: React.FC<ColumnListProps> = ({
   );
 };
 
-export default ColumnList;
+export const mapDispatchToProps = (dispatch: any) =>
+  bindActionCreators({ getColumnLineageDispatch: getColumnLineage }, dispatch);
+
+export default connect<{}, DispatchFromProps, ComponentProps>(
+  null,
+  mapDispatchToProps
+)(ColumnList);

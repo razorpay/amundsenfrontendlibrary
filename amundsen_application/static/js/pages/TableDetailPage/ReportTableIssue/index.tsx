@@ -8,8 +8,7 @@ import { GlobalState } from 'ducks/rootReducer';
 
 import { createIssue } from 'ducks/issue/reducer';
 import { CreateIssueRequest } from 'ducks/issue/types';
-import './styles.scss';
-import { logClick } from 'ducks/utilMethods';
+import { logClick } from 'utils/analytics';
 import {
   TableMetadata,
   CreateIssuePayload,
@@ -17,6 +16,8 @@ import {
   NotificationType,
 } from 'interfaces';
 import * as Constants from './constants';
+
+import './styles.scss';
 
 export interface ComponentProps {
   tableKey: string;
@@ -109,7 +110,7 @@ export class ReportTableIssue extends React.Component<
         {/* eslint-disable jsx-a11y/anchor-is-valid */}
         <a
           href="javascript:void(0)"
-          className="report-table-issue-link"
+          className="body-link"
           onClick={this.toggle}
         >
           {Constants.REPORT_DATA_ISSUE_TEXT}
@@ -170,9 +171,8 @@ export const mapStateToProps = (state: GlobalState) => {
   };
 };
 
-export const mapDispatchToProps = (dispatch: any) => {
-  return bindActionCreators({ createIssue }, dispatch);
-};
+export const mapDispatchToProps = (dispatch: any) =>
+  bindActionCreators({ createIssue }, dispatch);
 
 export default connect<StateFromProps, DispatchFromProps, ComponentProps>(
   mapStateToProps,

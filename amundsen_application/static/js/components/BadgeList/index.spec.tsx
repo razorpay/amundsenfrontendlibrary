@@ -8,7 +8,7 @@ import { BadgeStyle } from 'config/config-types';
 import * as ConfigUtils from 'config/config-utils';
 import { Badge } from 'interfaces/Badges';
 
-import * as UtilMethods from 'ducks/utilMethods';
+import * as Analytics from 'utils/analytics';
 
 import Flag from 'components/Flag';
 
@@ -35,7 +35,7 @@ const badges: Badge[] = [
   },
 ];
 
-const logClickSpy = jest.spyOn(UtilMethods, 'logClick');
+const logClickSpy = jest.spyOn(Analytics, 'logClick');
 logClickSpy.mockImplementation(() => null);
 
 const setup = (propOverrides?: Partial<BadgeListProps>) => {
@@ -55,12 +55,10 @@ const setup = (propOverrides?: Partial<BadgeListProps>) => {
 
 describe('BadgeList', () => {
   const getBadgeConfigSpy = jest.spyOn(ConfigUtils, 'getBadgeConfig');
-  getBadgeConfigSpy.mockImplementation((badgeName: string) => {
-    return {
-      displayName: badgeName + ' test name',
-      style: BadgeStyle.PRIMARY,
-    };
-  });
+  getBadgeConfigSpy.mockImplementation((badgeName: string) => ({
+    displayName: badgeName + ' test name',
+    style: BadgeStyle.PRIMARY,
+  }));
 
   describe('render', () => {
     describe('when no badges are passed', () => {

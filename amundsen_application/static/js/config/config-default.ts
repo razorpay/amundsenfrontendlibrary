@@ -31,6 +31,8 @@ const configDefault: AppConfig = {
     enabled: false,
   },
   logoPath: null,
+  logoTitle: 'AMUNDSEN',
+  documentTitle: 'Amundsen - Data Discovery Portal',
   numberFormat: null,
   mailClientFeatures: {
     feedbackEnabled: false,
@@ -96,6 +98,7 @@ const configDefault: AppConfig = {
           type: FilterType.INPUT_SELECT,
         },
       ],
+      notices: {},
     },
     [ResourceType.table]: {
       displayName: 'Datasets',
@@ -107,6 +110,10 @@ const configDefault: AppConfig = {
         delta: {
           displayName: 'Delta',
           iconClass: 'icon-delta',
+        },
+        dremio: {
+          displayName: 'Dremio',
+          iconClass: 'icon-dremio',
         },
         druid: {
           displayName: 'Druid',
@@ -178,11 +185,16 @@ const configDefault: AppConfig = {
         },
       },
       supportedDescriptionSources: {
+        dremio: {
+          displayName: 'Dremio',
+          iconPath: '/static/images/icons/logo-dremio.svg',
+        },
         github: {
           displayName: 'Github',
           iconPath: '/static/images/github.png',
         },
       },
+      notices: {},
     },
     [ResourceType.user]: {
       displayName: 'People',
@@ -197,9 +209,20 @@ const configDefault: AppConfig = {
       cluster: string,
       schema: string,
       table: string
-    ) => {
-      return `https://DEFAULT_LINEAGE_URL?schema=${schema}&cluster=${cluster}&db=${database}&table=${table}`;
-    },
+    ) =>
+      `https://DEFAULT_LINEAGE_URL?schema=${schema}&cluster=${cluster}&db=${database}&table=${table}`,
+    inAppListEnabled: false,
+  },
+  columnLineage: {
+    inAppListEnabled: false,
+    urlGenerator: (
+      database: string,
+      cluster: string,
+      schema: string,
+      table: string,
+      column: string
+    ) =>
+      `https://DEFAULT_LINEAGE_URL?schema=${schema}&cluster=${cluster}&db=${database}&table=${table}&column=${column}`,
   },
   tableProfile: {
     isBeta: false,
@@ -211,9 +234,8 @@ const configDefault: AppConfig = {
       table: string,
       partitionKey?: string,
       partitionValue?: string
-    ) => {
-      return `https://DEFAULT_EXPLORE_URL?schema=${schema}&cluster=${cluster}&db=${database}&table=${table}`;
-    },
+    ) =>
+      `https://DEFAULT_EXPLORE_URL?schema=${schema}&cluster=${cluster}&db=${database}&table=${table}`,
   },
 };
 

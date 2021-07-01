@@ -12,20 +12,19 @@ import { getMockRouterProps } from 'fixtures/mockRouter';
 
 import Feedback from 'features/Feedback';
 import SearchBar from 'components/SearchBar';
+import { logClick } from 'utils/analytics';
 
-import { logClick } from 'ducks/utilMethods';
 import AppConfig from 'config/config';
 
 import globalState from 'fixtures/globalState';
 import { NavBar, NavBarProps, mapStateToProps } from '.';
 
-jest.mock('ducks/utilMethods', () => {
-  return jest.fn().mockImplementation(() => {
-    return { logClick: jest.fn() };
-  });
-});
+jest.mock('ducks/utilMethods', () =>
+  jest.fn().mockImplementation(() => ({ logClick: jest.fn() }))
+);
 
 AppConfig.logoPath = '/test';
+AppConfig.logoTitle = 'test';
 AppConfig.navLinks = [
   {
     label: 'Announcements',
@@ -137,14 +136,14 @@ describe('NavBar', () => {
       });
     });
 
-    it('renders homepage Link with correct path ', () => {
+    it('renders homepage Link with correct path', () => {
       element = wrapper.find('#nav-bar-left').find(Link);
       expect(element.props().to).toEqual('/');
     });
 
     it('renders homepage Link with correct text', () => {
       element = wrapper.find('#nav-bar-left').find(Link).find('.title-3');
-      expect(element.children().text()).toEqual('AMUNDSEN');
+      expect(element.children().text()).toEqual('test');
     });
 
     it('calls generateNavLinks with correct props', () => {

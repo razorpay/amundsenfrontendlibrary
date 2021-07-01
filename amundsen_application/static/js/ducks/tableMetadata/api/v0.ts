@@ -8,6 +8,7 @@ import {
   UpdateOwnerPayload,
   User,
   Tag,
+  Lineage,
 } from 'interfaces';
 
 /** HELPERS **/
@@ -36,13 +37,10 @@ export type TableDataAPI = { tableData: TableData } & MessageAPI;
 export type RelatedDashboardDataAPI = {
   dashboards: DashboardResource[];
 } & MessageAPI;
+export type LineageAPI = { lineage: Lineage } & MessageAPI;
 
-export function getTableData(
-  tableKey: string,
-  index?: string,
-  source?: string
-) {
-  const tableQueryParams = getTableQueryParams(tableKey, index, source);
+export function getTableData(key: string, index?: string, source?: string) {
+  const tableQueryParams = getTableQueryParams({ key, index, source });
   const tableURL = `${API_PATH}/table?${tableQueryParams}`;
   const tableRequest = axios.get<TableDataAPI>(tableURL);
 
@@ -83,7 +81,7 @@ export function getTableDashboards(tableKey: string) {
 }
 
 export function getTableDescription(tableData: TableMetadata) {
-  const tableParams = getTableQueryParams(tableData.key);
+  const tableParams = getTableQueryParams({ key: tableData.key });
   return axios
     .get(`${API_PATH}/get_table_description?${tableParams}`)
     .then((response: AxiosResponse<DescriptionAPI>) => {
@@ -103,13 +101,13 @@ export function updateTableDescription(
   });
 }
 
-export function getTableOwners(tableKey: string) {
-  const tableParams = getTableQueryParams(tableKey);
+export function getTableOwners(key: string) {
+  const tableParams = getTableQueryParams({ key });
   return axios
     .get(`${API_PATH}/table?${tableParams}`)
-    .then((response: AxiosResponse<TableDataAPI>) => {
-      return getTableOwnersFromResponseData(response.data);
-    });
+    .then((response: AxiosResponse<TableDataAPI>) =>
+      getTableOwnersFromResponseData(response.data)
+    );
 }
 
 /* TODO: Typing return type generates redux-saga related type error that need more dedicated debugging */
@@ -124,9 +122,7 @@ export function generateOwnerUpdateRequests(
 
     /* Chain requests to send notification on success to desired users */
     return axios(updatePayload)
-      .then(() => {
-        return axios.get(`/api/metadata/v0/user?user_id=${item.id}`);
-      })
+      .then(() => axios.get(`/api/metadata/v0/user?user_id=${item.id}`))
       .then((response) => {
         if (shouldSendNotification(response.data.user)) {
           return axios.post('/api/mail/v0/notification', notificationData);
@@ -139,12 +135,13 @@ export function getColumnDescription(
   columnIndex: number,
   tableData: TableMetadata
 ) {
-  const tableParams = getTableQueryParams(tableData.key);
   const columnName = tableData.columns[columnIndex].name;
+  const tableParams = getTableQueryParams({
+    key: tableData.key,
+    column_name: columnName,
+  });
   return axios
-    .get(
-      `${API_PATH}/get_column_description?${tableParams}&column_name=${columnName}`
-    )
+    .get(`${API_PATH}/get_column_description?${tableParams}`)
     .then((response: AxiosResponse<DescriptionAPI>) => {
       tableData.columns[columnIndex].description = response.data.description;
       return tableData;
@@ -171,9 +168,10 @@ export function getPreviewData(queryParams: PreviewQueryParams) {
     method: 'POST',
     data: queryParams,
   })
-    .then((response: AxiosResponse<PreviewDataAPI>) => {
-      return { data: response.data.previewData, status: response.status };
-    })
+    .then((response: AxiosResponse<PreviewDataAPI>) => ({
+      data: response.data.previewData,
+      status: response.status,
+    }))
     .catch((e: AxiosError<PreviewDataAPI>) => {
       const { response } = e;
       let data = {};
@@ -182,5 +180,42 @@ export function getPreviewData(queryParams: PreviewQueryParams) {
       }
       const status = response ? response.status : null;
       return Promise.reject({ data, status });
+    });
+}
+
+export function getTableLineage(key: string) {
+  const tableQueryParams = getTableQueryParams({ key });
+  return axios({
+    url: `${API_PATH}/get_table_lineage?${tableQueryParams}`,
+    method: 'GET',
+  })
+    .then((response: AxiosResponse<LineageAPI>) => ({
+      data: response.data,
+      status: response.status,
+    }))
+    .catch((e: AxiosError<LineageAPI>) => {
+      const { response } = e;
+      const status = response ? response.status : null;
+      return Promise.reject({ status });
+    });
+}
+
+export function getColumnLineage(key: string, columnName: string) {
+  const tableQueryParams = getTableQueryParams({
+    key,
+    column_name: columnName,
+  });
+  return axios({
+    url: `${API_PATH}/get_column_lineage?${tableQueryParams}`,
+    method: 'GET',
+  })
+    .then((response: AxiosResponse<LineageAPI>) => ({
+      data: response.data,
+      status: response.status,
+    }))
+    .catch((e: AxiosError<LineageAPI>) => {
+      const { response } = e;
+      const status = response ? response.status : null;
+      return Promise.reject({ status });
     });
 }

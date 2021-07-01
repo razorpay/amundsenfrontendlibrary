@@ -14,7 +14,7 @@ import { connect } from 'react-redux';
 
 import { updateSearchState } from 'ducks/search/reducer';
 import { UpdateSearchStateRequest } from 'ducks/search/types';
-import { logClick } from 'ducks/utilMethods';
+import { logClick } from 'utils/analytics';
 
 import { ResourceType } from 'interfaces/Resources';
 
@@ -31,9 +31,7 @@ export interface DispatchFromProps {
 
 export type TableHeaderBulletsProps = HeaderBulletsProps & DispatchFromProps;
 
-export class TableHeaderBullets extends React.Component<
-  TableHeaderBulletsProps
-> {
+export class TableHeaderBullets extends React.Component<TableHeaderBulletsProps> {
   handleClick = (e) => {
     const databaseText = this.props.database;
     logClick(e, {
@@ -64,8 +62,8 @@ export class TableHeaderBullets extends React.Component<
   }
 }
 
-export const mapDispatchToProps = (dispatch: any) => {
-  return bindActionCreators(
+export const mapDispatchToProps = (dispatch: any) =>
+  bindActionCreators(
     {
       searchDatabase: (databaseText: string) =>
         updateSearchState({
@@ -77,7 +75,6 @@ export const mapDispatchToProps = (dispatch: any) => {
     },
     dispatch
   );
-};
 
 export default connect<null, DispatchFromProps, HeaderBulletsProps>(
   null,

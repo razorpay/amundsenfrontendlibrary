@@ -1,10 +1,9 @@
 import { eslint } from '@betterer/eslint';
 
 export default {
-  'eslint': eslint({
+  eslint: eslint({
     '@typescript-eslint/no-shadow': 'error',
     '@typescript-eslint/dot-notation': 'error',
-    '@typescript-eslint/naming-convention': 'error',
     '@typescript-eslint/no-unused-vars': 'error',
     'array-callback-return': 'error',
     'consistent-return': 'error',
@@ -41,4 +40,3 @@ export default {
     'jsx-a11y/no-static-element-interactions': 'error',
   }).include('./js/**/*.{ts,tsx,js,jsx}'),
 };
-

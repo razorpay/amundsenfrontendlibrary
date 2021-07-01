@@ -1,6 +1,7 @@
 import { testSaga } from 'redux-saga-test-plan';
 
 import {
+  Lineage,
   PreviewData,
   PreviewQueryParams,
   TableMetadata,
@@ -32,6 +33,13 @@ import reducer, {
   initialTableDataState,
   initialState,
   TableMetadataReducerState,
+  getTableLineage,
+  getTableLineageFailure,
+  initialTableLineageState,
+  getTableLineageSuccess,
+  getColumnLineage,
+  getColumnLineageFailure,
+  getColumnLineageSuccess,
 } from './reducer';
 
 import {
@@ -47,6 +55,10 @@ import {
   updateColumnDescriptionWorker,
   getPreviewDataWatcher,
   getPreviewDataWorker,
+  getTableLineageWatcher,
+  getTableLineageWorker,
+  getColumnLineageWatcher,
+  getColumnLineageWorker,
 } from './sagas';
 
 import {
@@ -56,6 +68,8 @@ import {
   GetColumnDescription,
   UpdateColumnDescription,
   GetPreviewData,
+  GetTableLineage,
+  GetColumnLineage,
 } from './types';
 
 describe('tableMetadata ducks', () => {
@@ -68,7 +82,9 @@ describe('tableMetadata ducks', () => {
   let testKey: string;
   let testIndex: string;
   let testSource: string;
+  let testLineage: Lineage;
 
+  let columnName: string;
   let columnIndex: number;
   let emptyPreviewData: PreviewData;
   let newDescription: string;
@@ -97,8 +113,24 @@ describe('tableMetadata ducks', () => {
     testKey = 'tableKey';
     testIndex = '3';
     testSource = 'search';
+    testLineage = {
+      upstream_entities: [
+        {
+          badges: [],
+          cluster: 'cluster',
+          database: 'database',
+          key: 'key',
+          level: 1,
+          name: 'name',
+          schema: 'schema',
+          usage: 100,
+        },
+      ],
+      downstream_entities: [],
+    };
 
     columnIndex = 2;
+    columnName = 'column_name';
     emptyPreviewData = {
       columns: [],
       data: [],
@@ -117,6 +149,7 @@ describe('tableMetadata ducks', () => {
       database: 'testDb',
       schema: 'testSchema',
       tableName: 'testName',
+      cluster: 'testCluster',
     };
   });
 
@@ -254,6 +287,60 @@ describe('tableMetadata ducks', () => {
       const { payload } = action;
       expect(action.type).toBe(GetPreviewData.SUCCESS);
       expect(payload.data).toBe(previewData);
+      expect(payload.status).toBe(status);
+    });
+
+    it('getTableLineage - returns the action to get table lineage', () => {
+      const action = getTableLineage(testKey);
+      const { payload } = action;
+      expect(action.type).toBe(GetTableLineage.REQUEST);
+      expect(payload.key).toBe(testKey);
+    });
+
+    it('getTableLineage - returns the action to process failure', () => {
+      const status = 500;
+      const action = getTableLineageFailure(status);
+      const { payload } = action;
+      expect(action.type).toBe(GetTableLineage.FAILURE);
+      expect(payload.lineage).toBe(initialTableLineageState.lineage);
+      expect(payload.status).toBe(status);
+    });
+
+    it('getTableLineage - returns the action to process success', () => {
+      const status = 200;
+      const action = getTableLineageSuccess(testLineage, status);
+      const { payload } = action;
+      expect(action.type).toBe(GetTableLineage.SUCCESS);
+      expect(payload.lineage).toBe(testLineage);
+      expect(payload.status).toBe(status);
+    });
+
+    it('getColumnLineage - returns the action to get column lineage', () => {
+      const action = getColumnLineage(testKey, columnName);
+      const { payload, meta } = action;
+      expect(action.type).toBe(GetColumnLineage.REQUEST);
+      expect(payload.key).toBe(testKey);
+      expect(payload.columnName).toBe(columnName);
+      expect(meta.analytics).not.toBeNull();
+    });
+
+    it('getColumnLineage - returns the action to process failure', () => {
+      const status = 500;
+      const action = getColumnLineageFailure(columnName, status);
+      const { payload } = action;
+      expect(action.type).toBe(GetColumnLineage.FAILURE);
+      expect(payload.columnName).toBe(columnName);
+      expect(payload.lineage).toBe(initialTableLineageState.lineage);
+      expect(payload.status).toBe(status);
+    });
+
+    it('getColumnLineage - returns the action to process success', () => {
+      const status = 200;
+      const action = getColumnLineageSuccess(testLineage, columnName, status);
+      const { payload } = action;
+      expect(action.type).toBe(GetColumnLineage.SUCCESS);
+      expect(payload.columnName).toBe(columnName);
+      expect(payload.lineage).toBe(testLineage);
       expect(payload.status).toBe(status);
     });
   });
@@ -409,8 +496,8 @@ describe('tableMetadata ducks', () => {
         let sagaTest;
         beforeAll(() => {
           const mockNewTableData: TableMetadata = initialTableDataState;
-          sagaTest = (action) => {
-            return testSaga(getTableDescriptionWorker, action)
+          sagaTest = (action) =>
+            testSaga(getTableDescriptionWorker, action)
               .next()
               .select()
               .next(globalState)
@@ -420,7 +507,6 @@ describe('tableMetadata ducks', () => {
               )
               .next(mockNewTableData)
               .put(getTableDescriptionSuccess(mockNewTableData));
-          };
         });
         it('without success callback', () => {
           sagaTest(getTableDescription()).next().isDone();
@@ -438,8 +524,8 @@ describe('tableMetadata ducks', () => {
       describe('handles request error', () => {
         let sagaTest;
         beforeAll(() => {
-          sagaTest = (action) => {
-            return testSaga(getTableDescriptionWorker, action)
+          sagaTest = (action) =>
+            testSaga(getTableDescriptionWorker, action)
               .next()
               .select()
               .next(globalState)
@@ -447,7 +533,6 @@ describe('tableMetadata ducks', () => {
               .put(
                 getTableDescriptionFailure(globalState.tableMetadata.tableData)
               );
-          };
         });
         it('without failure callback', () => {
           sagaTest(getTableDescription()).next().isDone();
@@ -480,8 +565,8 @@ describe('tableMetadata ducks', () => {
       describe('executes flow for updating table description', () => {
         let sagaTest;
         beforeAll(() => {
-          sagaTest = (mockSuccess) => {
-            return testSaga(
+          sagaTest = (mockSuccess) =>
+            testSaga(
               updateTableDescriptionWorker,
               updateTableDescription(newDescription, mockSuccess, undefined)
             )
@@ -493,7 +578,6 @@ describe('tableMetadata ducks', () => {
                 newDescription,
                 globalState.tableMetadata.tableData
               );
-          };
         });
         it('without success callback', () => {
           sagaTest().next().isDone();
@@ -507,8 +591,8 @@ describe('tableMetadata ducks', () => {
       describe('handles request error', () => {
         let sagaTest;
         beforeAll(() => {
-          sagaTest = (mockFailure) => {
-            return testSaga(
+          sagaTest = (mockFailure) =>
+            testSaga(
               updateTableDescriptionWorker,
               updateTableDescription(newDescription, undefined, mockFailure)
             )
@@ -516,7 +600,6 @@ describe('tableMetadata ducks', () => {
               .select()
               .next(globalState)
               .throw(new Error());
-          };
         });
         it('without failure callback', () => {
           sagaTest().next().isDone();
@@ -544,8 +627,8 @@ describe('tableMetadata ducks', () => {
         beforeAll(() => {
           const mockNewTableData: TableMetadata = initialTableDataState;
 
-          sagaTest = (action) => {
-            return testSaga(getColumnDescriptionWorker, action)
+          sagaTest = (action) =>
+            testSaga(getColumnDescriptionWorker, action)
               .next()
               .select()
               .next(globalState)
@@ -556,7 +639,6 @@ describe('tableMetadata ducks', () => {
               )
               .next(mockNewTableData)
               .put(getColumnDescriptionSuccess(mockNewTableData));
-          };
         });
         it('without success callback', () => {
           sagaTest(getColumnDescription(columnIndex)).next().isDone();
@@ -574,8 +656,8 @@ describe('tableMetadata ducks', () => {
       describe('handles request error', () => {
         let sagaTest;
         beforeAll(() => {
-          sagaTest = (action) => {
-            return testSaga(getColumnDescriptionWorker, action)
+          sagaTest = (action) =>
+            testSaga(getColumnDescriptionWorker, action)
               .next()
               .select()
               .next(globalState)
@@ -583,7 +665,6 @@ describe('tableMetadata ducks', () => {
               .put(
                 getColumnDescriptionFailure(globalState.tableMetadata.tableData)
               );
-          };
         });
         it('without failure callback', () => {
           sagaTest(getColumnDescription(columnIndex)).next().isDone();
@@ -616,8 +697,8 @@ describe('tableMetadata ducks', () => {
       describe('executes flow for updating a table column description', () => {
         let sagaTest;
         beforeAll(() => {
-          sagaTest = (mockSuccess) => {
-            return testSaga(
+          sagaTest = (mockSuccess) =>
+            testSaga(
               updateColumnDescriptionWorker,
               updateColumnDescription(
                 newDescription,
@@ -635,7 +716,6 @@ describe('tableMetadata ducks', () => {
                 columnIndex,
                 globalState.tableMetadata.tableData
               );
-          };
         });
         it('without success callback', () => {
           sagaTest().next().isDone();
@@ -649,8 +729,8 @@ describe('tableMetadata ducks', () => {
       describe('handles request error', () => {
         let sagaTest;
         beforeAll(() => {
-          sagaTest = (mockFailure) => {
-            return testSaga(
+          sagaTest = (mockFailure) =>
+            testSaga(
               updateColumnDescriptionWorker,
               updateColumnDescription(
                 newDescription,
@@ -663,7 +743,6 @@ describe('tableMetadata ducks', () => {
               .select()
               .next(globalState)
               .throw(new Error());
-          };
         });
         it('without failure callback', () => {
           sagaTest().next().isDone();
@@ -703,6 +782,72 @@ describe('tableMetadata ducks', () => {
           // @ts-ignore TODO: Investigate why redux-saga-test-plan throw() complains
           .throw({ data: previewData, status: 500 })
           .put(getPreviewDataFailure(previewData, 500))
+          .next()
+          .isDone();
+      });
+    });
+
+    describe('getTableLineageWatcher', () => {
+      it('takes every GetTableLineage.REQUEST with getTableLineageWorker', () => {
+        testSaga(getTableLineageWatcher)
+          .next()
+          .takeEvery(GetTableLineage.REQUEST, getTableLineageWorker)
+          .next()
+          .isDone();
+      });
+    });
+
+    describe('getTableLineageWorker', () => {
+      it('executes flow for getting table lineage', () => {
+        testSaga(getTableLineageWorker, getTableLineage(testKey))
+          .next()
+          .call(API.getTableLineage, testKey)
+          .next({ data: testLineage, status: 200 })
+          .put(getTableLineageSuccess(testLineage, 200))
+          .next()
+          .isDone();
+      });
+
+      it('handles request error', () => {
+        testSaga(getTableLineageWorker, getTableLineage(testKey))
+          .next()
+          .call(API.getTableLineage, testKey)
+          // @ts-ignore
+          .throw({ status: 500 })
+          .put(getTableLineageFailure(500))
+          .next()
+          .isDone();
+      });
+    });
+
+    describe('getColumnLineageWatcher', () => {
+      it('takes every GetColumnLineage.REQUEST with getColumnLineageWorker', () => {
+        testSaga(getColumnLineageWatcher)
+          .next()
+          .takeEvery(GetColumnLineage.REQUEST, getColumnLineageWorker)
+          .next()
+          .isDone();
+      });
+    });
+
+    describe('getColumnLineageWorker', () => {
+      it('executes flow for getting column lineage', () => {
+        testSaga(getColumnLineageWorker, getColumnLineage(testKey, columnName))
+          .next()
+          .call(API.getColumnLineage, testKey, columnName)
+          .next({ data: testLineage, status: 200 })
+          .put(getColumnLineageSuccess(testLineage, columnName, 200))
+          .next()
+          .isDone();
+      });
+
+      it('handles request error', () => {
+        testSaga(getColumnLineageWorker, getColumnLineage(testKey, columnName))
+          .next()
+          .call(API.getColumnLineage, testKey, columnName)
+          // @ts-ignore
+          .throw({ status: 500 })
+          .put(getColumnLineageFailure(columnName, 500))
           .next()
           .isDone();
       });
