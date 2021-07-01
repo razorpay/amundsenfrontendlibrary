@@ -9,8 +9,8 @@ import { bindActionCreators } from 'redux';
 
 import { getPreviewData } from 'ducks/tableMetadata/reducer';
 import { GlobalState } from 'ducks/rootReducer';
-import { logClick } from 'ducks/utilMethods';
 import { PreviewData, PreviewQueryParams, TableMetadata } from 'interfaces';
+import { logClick } from 'utils/analytics';
 import * as Constants from './constants';
 
 // TODO: Use css-modules instead of 'import'
@@ -87,6 +87,7 @@ export class DataPreviewButton extends React.Component<
       database: tableData.database,
       schema: tableData.schema,
       tableName: tableData.name,
+      cluster: tableData.cluster,
     });
   }
 
@@ -252,17 +253,14 @@ export class DataPreviewButton extends React.Component<
   }
 }
 
-export const mapStateToProps = (state: GlobalState) => {
-  return {
-    previewData: state.tableMetadata.preview.data,
-    status: getStatusFromCode(state.tableMetadata.preview.status),
-    tableData: state.tableMetadata.tableData,
-  };
-};
+export const mapStateToProps = (state: GlobalState) => ({
+  previewData: state.tableMetadata.preview.data,
+  status: getStatusFromCode(state.tableMetadata.preview.status),
+  tableData: state.tableMetadata.tableData,
+});
 
-export const mapDispatchToProps = (dispatch: any) => {
-  return bindActionCreators({ getPreviewData }, dispatch);
-};
+export const mapDispatchToProps = (dispatch: any) =>
+  bindActionCreators({ getPreviewData }, dispatch);
 
 export default connect<StateFromProps, DispatchFromProps, ComponentProps>(
   mapStateToProps,

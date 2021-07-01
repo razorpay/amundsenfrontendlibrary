@@ -3,9 +3,10 @@
 
 import * as React from 'react';
 
-import { TableColumnStats } from 'interfaces/index';
 import { formatNumber, isNumber } from 'utils/numberUtils';
-import { getStatsInfoText } from '../utils';
+import { getStatsInfoText } from 'utils/stats';
+
+import { TableColumnStats } from 'interfaces/index';
 
 import { COLUMN_STATS_TITLE } from '../constants';
 
@@ -23,23 +24,19 @@ type ColumnStatRowProps = {
 const ColumnStatRow: React.FC<ColumnStatRowProps> = ({
   stat_type,
   stat_val,
-}: ColumnStatRowProps) => {
-  return (
-    <div className="column-stat-row">
-      <div className="stat-name body-3">{stat_type.toUpperCase()}</div>
-      <div className="stat-value">
-        {isNumber(stat_val) ? formatNumber(+stat_val) : stat_val}
-      </div>
+}: ColumnStatRowProps) => (
+  <div className="column-stat-row">
+    <div className="stat-name body-3">{stat_type}</div>
+    <div className="stat-value">
+      {isNumber(stat_val) ? formatNumber(+stat_val) : stat_val}
     </div>
-  );
-};
+  </div>
+);
 
 const getStart = ({ start_epoch }) => start_epoch;
 const getEnd = ({ end_epoch }) => end_epoch;
 
-const ColumnStats: React.FC<ColumnStatsProps> = ({
-  stats,
-}: ColumnStatsProps) => {
+const ColumnStats: React.FC<ColumnStatsProps> = ({ stats }) => {
   if (stats.length === 0) {
     return null;
   }

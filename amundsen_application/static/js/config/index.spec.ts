@@ -1,6 +1,6 @@
 import AppConfig from 'config/config';
 import * as ConfigUtils from 'config/config-utils';
-import { BadgeStyle } from 'config/config-types';
+import { BadgeStyle, NoticeSeverity } from 'config/config-types';
 
 import { ResourceType } from 'interfaces';
 
@@ -67,6 +67,69 @@ describe('getDisplayNameByResource', () => {
   });
 });
 
+describe('getResourceNotices', () => {
+  describe('when there is a notice', () => {
+    AppConfig.resourceConfig[ResourceType.table].notices = {
+      testName: {
+        severity: NoticeSeverity.WARNING,
+        messageHtml: 'testMessage',
+      },
+    };
+
+    it('returns the notice', () => {
+      const expected = 'testMessage';
+      const notice = ConfigUtils.getResourceNotices(
+        ResourceType.table,
+        'testName'
+      );
+      const actual = notice && notice.messageHtml;
+
+      expect(actual).toEqual(expected);
+    });
+  });
+
+  describe('when there is no notice', () => {
+    AppConfig.resourceConfig[ResourceType.table].notices = {
+      testName: {
+        severity: NoticeSeverity.WARNING,
+        messageHtml: 'testMessage',
+      },
+    };
+
+    it('returns false', () => {
+      const expected = false;
+      const actual = ConfigUtils.getResourceNotices(
+        ResourceType.table,
+        'testNameNoThere'
+      );
+
+      expect(actual).toEqual(expected);
+    });
+  });
+
+  describe('when resource is a dashboard', () => {
+    describe('when there is a notice', () => {
+      AppConfig.resourceConfig[ResourceType.dashboard].notices = {
+        testName: {
+          severity: NoticeSeverity.WARNING,
+          messageHtml: 'testMessage',
+        },
+      };
+
+      it('returns the notice', () => {
+        const expected = 'testMessage';
+        const notice = ConfigUtils.getResourceNotices(
+          ResourceType.dashboard,
+          'testName'
+        );
+        const actual = notice && notice.messageHtml;
+
+        expect(actual).toEqual(expected);
+      });
+    });
+  });
+});
+
 describe('getFilterConfigByResource', () => {
   it('returns the filter categories for a given resource', () => {
     const testResource = ResourceType.table;
@@ -83,6 +146,18 @@ describe('getAnalyticsConfig', () => {
     const expectedValue = AppConfig.analytics;
 
     expect(ConfigUtils.getAnalyticsConfig()).toBe(expectedValue);
+  });
+});
+
+describe('getUniqueValueStatTypeName', () => {
+  it('returns the unique value stat type key name', () => {
+    const expectedValue = 'test';
+
+    AppConfig.resourceConfig[ResourceType.table].stats = {
+      uniqueValueTypeName: expectedValue,
+    };
+
+    expect(ConfigUtils.getUniqueValueStatTypeName()).toBe(expectedValue);
   });
 });
 
@@ -312,6 +387,78 @@ describe('numberFormat', () => {
   it('returns number format defined in config', () => {
     const actual = ConfigUtils.getNumberFormat();
     const expected = AppConfig.numberFormat;
+    expect(actual).toBe(expected);
+  });
+});
+
+describe('getDocumentTitle', () => {
+  it('returns documentTitle defined in config', () => {
+    const actual = ConfigUtils.getDocumentTitle();
+    const expected = AppConfig.documentTitle;
+    expect(actual).toBe(expected);
+  });
+});
+
+describe('getLogoTitle', () => {
+  it('returns logoTitle defined in config', () => {
+    const actual = ConfigUtils.getLogoTitle();
+    const expected = AppConfig.logoTitle;
+    expect(actual).toBe(expected);
+  });
+});
+
+describe('isTableListLineageEnabled', () => {
+  it('returns isTableListLineageEnabled defined in config', () => {
+    const actual = ConfigUtils.isTableListLineageEnabled();
+    const expected = AppConfig.tableLineage.inAppListEnabled;
+    expect(actual).toBe(expected);
+  });
+});
+
+describe('isColumnListLineageEnabled', () => {
+  it('returns isColumnListLineageEnabled defined in config', () => {
+    const actual = ConfigUtils.isColumnListLineageEnabled();
+    const expected = AppConfig.columnLineage.inAppListEnabled;
+    expect(actual).toBe(expected);
+  });
+});
+
+describe('getColumnLineageLink', () => {
+  it('calls the column lineage link with the right params', () => {
+    const tableData = {
+      badges: [],
+      cluster: 'cluster',
+      columns: [],
+      dashboards: [],
+      database: 'database',
+      is_editable: false,
+      is_view: false,
+      key: '',
+      schema: 'schema',
+      name: 'table_name',
+      last_updated_timestamp: 12321312312,
+      description: '',
+      table_writer: { application_url: '', description: '', id: '', name: '' },
+      partition: {
+        is_partitioned: true,
+        key: 'partition_key',
+        value: 'partition_value',
+      },
+      table_readers: [],
+      source: { source: '', source_type: '' },
+      resource_reports: [],
+      watermarks: [],
+      programmatic_descriptions: {},
+    };
+    const columnName = 'column_name';
+    const actual = ConfigUtils.getColumnLineageLink(tableData, columnName);
+    const expected = AppConfig.columnLineage.urlGenerator(
+      tableData.database,
+      tableData.cluster,
+      tableData.schema,
+      tableData.name,
+      columnName
+    );
     expect(actual).toBe(expected);
   });
 });

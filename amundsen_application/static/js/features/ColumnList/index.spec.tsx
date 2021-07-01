@@ -38,6 +38,7 @@ const setup = (propOverrides?: Partial<ColumnListProps>) => {
     editUrl: 'https://test.datasource.site/table',
     database: 'testDatabase',
     columns: [],
+    tableKey: 'test-key',
     openRequestDescriptionDialog: jest.fn(),
     ...propOverrides,
   };
@@ -285,12 +286,10 @@ describe('ColumnList', () => {
     describe('when columns with badges are passed', () => {
       const { columns } = dataBuilder.withBadges().build();
       const getBadgeConfigSpy = jest.spyOn(ConfigUtils, 'getBadgeConfig');
-      getBadgeConfigSpy.mockImplementation((badgeName: string) => {
-        return {
-          displayName: badgeName + ' test name',
-          style: BadgeStyle.PRIMARY,
-        };
-      });
+      getBadgeConfigSpy.mockImplementation((badgeName: string) => ({
+        displayName: badgeName + ' test name',
+        style: BadgeStyle.PRIMARY,
+      }));
 
       it('should render the rows', () => {
         const { wrapper } = setup({ columns });
