@@ -9,25 +9,31 @@ import { bindActionCreators } from 'redux';
 import { RouteComponentProps } from 'react-router';
 
 import { GlobalState } from 'ducks/rootReducer';
-import { getTableData } from 'ducks/tableMetadata/reducer';
+import { getTableData, getTableLineage } from 'ducks/tableMetadata/reducer';
 import { openRequestDescriptionDialog } from 'ducks/notification/reducer';
 import { updateSearchState } from 'ducks/search/reducer';
-import { GetTableDataRequest } from 'ducks/tableMetadata/types';
+import {
+  GetTableDataRequest,
+  GetTableLineageRequest,
+} from 'ducks/tableMetadata/types';
 import { OpenRequestAction } from 'ducks/notification/types';
 import { UpdateSearchStateRequest } from 'ducks/search/types';
-import { logClick } from 'ducks/utilMethods';
 
 import {
   getDescriptionSourceDisplayName,
   getMaxLength,
   getSourceIconClass,
+  getResourceNotices,
   getTableSortCriterias,
   indexDashboardsEnabled,
   issueTrackingEnabled,
+  isTableListLineageEnabled,
   notificationsEnabled,
 } from 'config/config-utils';
 
 import BadgeList from 'features/BadgeList';
+import ColumnList from 'features/ColumnList';
+
 import BookmarkIcon from 'components/Bookmark/BookmarkIcon';
 import Breadcrumb from 'components/Breadcrumb';
 import TabsComponent, { TabInfo } from 'components/TabsComponent';
@@ -35,8 +41,9 @@ import TagInput from 'components/Tags/TagInput';
 import EditableText from 'components/EditableText';
 import LoadingSpinner from 'components/LoadingSpinner';
 import EditableSection from 'components/EditableSection';
-import ColumnList from 'features/ColumnList';
+import Alert from 'components/Alert';
 
+import { logAction, logClick } from 'utils/analytics';
 import { formatDateTimeShort } from 'utils/dateUtils';
 import { getLoggingParams } from 'utils/logUtils';
 
@@ -46,12 +53,14 @@ import {
   TableMetadata,
   RequestMetadataType,
   SortCriteria,
+  Lineage,
 } from 'interfaces';
 
 import DataPreviewButton from './DataPreviewButton';
 import ExploreButton from './ExploreButton';
 import FrequentUsers from './FrequentUsers';
 import LineageLink from './LineageLink';
+import LineageList from './LineageList';
 import TableOwnerEditor from './TableOwnerEditor';
 import SourceLink from './SourceLink';
 import TableDashboardResourceList from './TableDashboardResourceList';
@@ -75,7 +84,6 @@ const TABLE_SOURCE = 'table_page';
 const SORT_CRITERIAS = {
   ...getTableSortCriterias(),
 };
-const COLUMN_TAB_KEY = 'columns';
 
 export interface PropsFromState {
   isLoading: boolean;
@@ -83,6 +91,7 @@ export interface PropsFromState {
   numRelatedDashboards: number;
   statusCode: number | null;
   tableData: TableMetadata;
+  tableLineage: Lineage;
 }
 export interface DispatchFromProps {
   getTableData: (
@@ -90,6 +99,7 @@ export interface DispatchFromProps {
     searchIndex?: string,
     source?: string
   ) => GetTableDataRequest;
+  getTableLineageDispatch: (key: string) => GetTableLineageRequest;
   openRequestDescriptionDialog: (
     requestMetadataType: RequestMetadataType,
     columnName: string
@@ -108,14 +118,12 @@ export type TableDetailProps = PropsFromState &
   DispatchFromProps &
   RouteComponentProps<MatchProps>;
 
-const ErrorMessage = () => {
-  return (
-    <div className="container error-label">
-      <Breadcrumb />
-      <label>{Constants.ERROR_MESSAGE}</label>
-    </div>
-  );
-};
+const ErrorMessage = () => (
+  <div className="container error-label">
+    <Breadcrumb />
+    <label>{Constants.ERROR_MESSAGE}</label>
+  </div>
+);
 
 export interface StateProps {
   sortedBy: SortCriteria;
@@ -132,15 +140,19 @@ export class TableDetail extends React.Component<
 
   state = {
     sortedBy: SORT_CRITERIAS.sort_order,
-    currentTab: COLUMN_TAB_KEY,
+    currentTab: Constants.TABLE_TAB.COLUMN,
   };
 
   componentDidMount() {
-    const { location, getTableData } = this.props;
+    const { location, getTableData, getTableLineageDispatch } = this.props;
     const { index, source } = getLoggingParams(location.search);
 
     this.key = this.getTableKey();
     getTableData(this.key, index, source);
+
+    if (isTableListLineageEnabled()) {
+      getTableLineageDispatch(this.key);
+    }
     this.didComponentMount = true;
   }
 
@@ -176,14 +188,15 @@ export class TableDetail extends React.Component<
   }
 
   handleClick = (e) => {
-    const { match } = this.props;
+    const { match, searchSchema } = this.props;
     const { params } = match;
     const schemaText = params.schema;
+
     logClick(e, {
       target_type: 'schema',
       label: schemaText,
     });
-    this.props.searchSchema(schemaText);
+    searchSchema(schemaText);
   };
 
   renderProgrammaticDesc = (
@@ -221,6 +234,7 @@ export class TableDetail extends React.Component<
       numRelatedDashboards,
       tableData,
       openRequestDescriptionDialog,
+      tableLineage,
     } = this.props;
     const { sortedBy } = this.state;
 
@@ -231,12 +245,13 @@ export class TableDetail extends React.Component<
           openRequestDescriptionDialog={openRequestDescriptionDialog}
           columns={tableData.columns}
           database={tableData.database}
+          tableKey={tableData.key}
           editText={editText}
           editUrl={editUrl}
           sortBy={sortedBy}
         />
       ),
-      key: 'columns',
+      key: Constants.TABLE_TAB.COLUMN,
       title: `Columns (${tableData.columns.length})`,
     });
 
@@ -254,19 +269,41 @@ export class TableDetail extends React.Component<
             source={TABLE_SOURCE}
           />
         ),
-        key: 'dashboards',
+        key: Constants.TABLE_TAB.DASHBOARD,
         title: isLoadingDashboards
           ? loadingTitle
           : `Dashboards (${numRelatedDashboards})`,
       });
     }
 
+    if (isTableListLineageEnabled()) {
+      if (tableLineage.upstream_entities.length > 0) {
+        tabInfo.push({
+          content: <LineageList items={tableLineage.upstream_entities} />,
+          key: Constants.TABLE_TAB.UPSTREAM,
+          title: `Upstream (${tableLineage.upstream_entities.length})`,
+        });
+      }
+      if (tableLineage.downstream_entities.length > 0) {
+        tabInfo.push({
+          content: <LineageList items={tableLineage.downstream_entities} />,
+          key: Constants.TABLE_TAB.DOWNSTREAM,
+          title: `Downstream (${tableLineage.downstream_entities.length})`,
+        });
+      }
+    }
+
     return (
       <TabsComponent
         tabs={tabInfo}
-        defaultTab="columns"
+        defaultTab={Constants.TABLE_TAB.COLUMN}
         onSelect={(key) => {
           this.setState({ currentTab: key });
+          logAction({
+            command: 'click',
+            target_id: 'table_detail_tab',
+            label: key,
+          });
         }}
       />
     );
@@ -297,6 +334,10 @@ export class TableDetail extends React.Component<
           )}`
         : '';
       const editUrl = data.source ? data.source.source : '';
+      const tableNotice = getResourceNotices(
+        ResourceType.table,
+        `${data.cluster}.${data.database}.${data.schema}.${data.name}`
+      );
 
       innerContent = (
         <div className="resource-detail-layout table-detail">
@@ -347,6 +388,12 @@ export class TableDetail extends React.Component<
           </header>
           <div className="column-layout-1">
             <aside className="left-panel">
+              {!!tableNotice && (
+                <Alert
+                  message={tableNotice.messageHtml}
+                  severity={tableNotice.severity}
+                />
+              )}
               <EditableSection
                 title={Constants.DESCRIPTION_TITLE}
                 readOnly={!data.is_editable}
@@ -384,14 +431,12 @@ export class TableDetail extends React.Component<
                       </time>
                     </section>
                   )}
-                  {!data.is_view && (
-                    <section className="metadata-section">
-                      <div className="section-title">
-                        {Constants.DATE_RANGE_TITLE}
-                      </div>
-                      <WatermarkLabel watermarks={data.watermarks} />
-                    </section>
-                  )}
+                  <section className="metadata-section">
+                    <div className="section-title">
+                      {Constants.DATE_RANGE_TITLE}
+                    </div>
+                    <WatermarkLabel watermarks={data.watermarks} />
+                  </section>
                   <EditableSection title={Constants.TAG_TITLE}>
                     <TagInput
                       resourceType={ResourceType.table}
@@ -427,7 +472,7 @@ export class TableDetail extends React.Component<
               )}
             </aside>
             <main className="right-panel">
-              {currentTab === COLUMN_TAB_KEY && (
+              {currentTab === Constants.TABLE_TAB.COLUMN && (
                 <ListSortingDropdown
                   options={SORT_CRITERIAS}
                   onChange={this.handleSortingChange}
@@ -450,24 +495,24 @@ export class TableDetail extends React.Component<
   }
 }
 
-export const mapStateToProps = (state: GlobalState) => {
-  return {
-    isLoading: state.tableMetadata.isLoading,
-    statusCode: state.tableMetadata.statusCode,
-    tableData: state.tableMetadata.tableData,
-    numRelatedDashboards: state.tableMetadata.dashboards
-      ? state.tableMetadata.dashboards.dashboards.length
-      : 0,
-    isLoadingDashboards: state.tableMetadata.dashboards
-      ? state.tableMetadata.dashboards.isLoading
-      : true,
-  };
-};
+export const mapStateToProps = (state: GlobalState) => ({
+  isLoading: state.tableMetadata.isLoading,
+  statusCode: state.tableMetadata.statusCode,
+  tableData: state.tableMetadata.tableData,
+  tableLineage: state.tableMetadata.tableLineage.lineage,
+  numRelatedDashboards: state.tableMetadata.dashboards
+    ? state.tableMetadata.dashboards.dashboards.length
+    : 0,
+  isLoadingDashboards: state.tableMetadata.dashboards
+    ? state.tableMetadata.dashboards.isLoading
+    : true,
+});
 
-export const mapDispatchToProps = (dispatch: any) => {
-  return bindActionCreators(
+export const mapDispatchToProps = (dispatch: any) =>
+  bindActionCreators(
     {
       getTableData,
+      getTableLineageDispatch: getTableLineage,
       openRequestDescriptionDialog,
       searchSchema: (schemaText: string) =>
         updateSearchState({
@@ -479,7 +524,6 @@ export const mapDispatchToProps = (dispatch: any) => {
     },
     dispatch
   );
-};
 
 export default connect<PropsFromState, DispatchFromProps>(
   mapStateToProps,

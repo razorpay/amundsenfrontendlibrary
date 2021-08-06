@@ -26,6 +26,11 @@ export interface TableColumnStats {
   end_epoch: number;
 }
 
+export interface ColumnUniqueValues {
+  value: string;
+  count: number;
+}
+
 // TODO - Make this reusable for dashboards
 export interface TableReader {
   read_count: number;
@@ -48,6 +53,7 @@ export interface PreviewQueryParams {
   database: string;
   schema: string;
   tableName: string;
+  cluster: string;
 }
 
 export interface PreviewData {
@@ -117,4 +123,36 @@ export interface Watermark {
   partition_key: string;
   partition_value: string;
   watermark_type: string;
+}
+
+export interface LineageItem {
+  badges: Badge[];
+  cluster: string;
+  database: string;
+  key: string;
+  level: number;
+  name: string;
+  schema: string;
+  usage: number;
+}
+
+export interface Lineage {
+  downstream_entities: LineageItem[];
+  upstream_entities: LineageItem[];
+}
+
+export interface ColumnLineageMap {
+  [columnName: string]: {
+    lineage: Lineage;
+    isLoading: boolean;
+  };
+}
+
+export interface TableLineageParams {
+  key: string;
+}
+
+export interface ColumnLineageParams {
+  key: string;
+  column: string;
 }

@@ -2,6 +2,7 @@ import {
   TableMetadata,
   DashboardResource,
   ResourceType,
+  Lineage,
 } from '../../interfaces';
 
 export const tableMetadata: TableMetadata = {
@@ -167,6 +168,38 @@ export const tableMetadata: TableMetadata = {
       partition_key: 'ds',
       partition_value: '2013-02-10',
       watermark_type: 'low_watermark',
+    },
+  ],
+};
+
+export const emptyTableLineage: Lineage = {
+  downstream_entities: [],
+  upstream_entities: [],
+};
+
+export const tableLineage: Lineage = {
+  downstream_entities: [
+    {
+      badges: [],
+      cluster: 'cluster',
+      database: 'database',
+      key: 'database://cluster.schema/table_name',
+      level: 1,
+      name: 'table_name',
+      schema: 'schema',
+      usage: 1398,
+    },
+  ],
+  upstream_entities: [
+    {
+      badges: [],
+      cluster: 'cluster',
+      database: 'database',
+      key: 'database://cluster.schema/table_name',
+      level: 1,
+      name: 'table_name',
+      schema: 'schema',
+      usage: 1398,
     },
   ],
 };

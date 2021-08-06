@@ -7,10 +7,9 @@ import { getBadgeConfig } from 'config/config-utils';
 import { BadgeStyle, BadgeStyleConfig } from 'config/config-types';
 
 import { convertText, CaseType } from 'utils/textUtils';
+import { logClick } from 'utils/analytics';
 
 import { Badge } from 'interfaces/Badges';
-
-import { logClick } from 'ducks/utilMethods';
 
 import './styles.scss';
 
@@ -30,25 +29,21 @@ export interface ActionableBadgeProps {
 const StaticBadge: React.FC<BadgeStyleConfig> = ({
   style,
   displayName,
-}: BadgeStyleConfig) => {
-  return (
-    <span className={`static-badge flag label label-${style}`}>
-      <div className={`badge-overlay-${style}`}>{displayName}</div>
-    </span>
-  );
-};
+}: BadgeStyleConfig) => (
+  <span className={`static-badge flag label label-${style}`}>
+    <div className={`badge-overlay-${style}`}>{displayName}</div>
+  </span>
+);
 
 const ActionableBadge: React.FC<ActionableBadgeProps> = ({
   style,
   displayName,
   action,
-}: ActionableBadgeProps) => {
-  return (
-    <span className="actionable-badge" onClick={action}>
-      <StaticBadge style={style} displayName={displayName} />
-    </span>
-  );
-};
+}: ActionableBadgeProps) => (
+  <span className="actionable-badge" onClick={action}>
+    <StaticBadge style={style} displayName={displayName} />
+  </span>
+);
 
 export default class BadgeList extends React.Component<BadgeListProps> {
   handleClick = (index: number, badgeText: string, e) => {
