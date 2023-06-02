@@ -80,7 +80,7 @@ amundsen-common==0.5.9
 flask-restful==0.3.8
 
 # SDK for JIRA
-jira==2.0.0
+jira==3.5.1
 
 # SDK for Asana
 asana==0.10.3
