@@ -803,6 +803,15 @@ class MetadataTest(unittest.TestCase):
         url = local_app.config['METADATASERVICE_BASE'] + TABLE_ENDPOINT + '/db://cluster.schema/table/tag/tag_5'
         responses.add(responses.PUT, url, json={}, status=HTTPStatus.OK)
 
+        searchservice_base = local_app.config['SEARCHSERVICE_BASE']
+        get_table_url = f'{searchservice_base}/search_table'
+        responses.add(responses.POST, get_table_url,
+                      json={'results': [{'id': '1', 'tags': [{'tag_name': 'tag_1'}, {'tag_name': 'tag_2'}]}]},
+                      status=HTTPStatus.OK)
+
+        post_table_url = f'{searchservice_base}/document_table'
+        responses.add(responses.PUT, post_table_url, json={}, status=HTTPStatus.OK)
+
         with local_app.test_client() as test:
             response = test.put(
                 '/api/metadata/v0/update_table_tags',
@@ -821,6 +830,15 @@ class MetadataTest(unittest.TestCase):
         """
         url = local_app.config['METADATASERVICE_BASE'] + TABLE_ENDPOINT + '/db://cluster.schema/table/tag/tag_5'
         responses.add(responses.DELETE, url, json={}, status=HTTPStatus.OK)
+
+        searchservice_base = local_app.config['SEARCHSERVICE_BASE']
+        get_table_url = f'{searchservice_base}/search_table'
+        responses.add(responses.POST, get_table_url,
+                      json={'results': [{'id': '1', 'tags': [{'tag_name': 'tag_1'}, {'tag_name': 'tag_2'}]}]},
+                      status=HTTPStatus.OK)
+
+        post_table_url = f'{searchservice_base}/document_table'
+        responses.add(responses.PUT, post_table_url, json={}, status=HTTPStatus.OK)
 
         with local_app.test_client() as test:
             response = test.delete(
@@ -1003,7 +1021,7 @@ class MetadataTest(unittest.TestCase):
             response = test.get('/api/metadata/v0/user/read', query_string=dict(user_id=test_user))
             data = json.loads(response.data)
             self.assertEqual(response.status_code, HTTPStatus.OK)
-            self.assertCountEqual(data.get('read'), self.expected_parsed_user_resources.get('table'))
+            self.assertCountEqual(data.get('read'), self.expected_parsed_user_resources.get('table'))  # type: ignore
 
     @responses.activate
     def test_get_user_own(self) -> None:
@@ -1075,11 +1093,10 @@ class MetadataTest(unittest.TestCase):
                 '/api/metadata/v0/table/{0}/dashboards'.format(test_table)
             )
             data = json.loads(response.data)
-
             self.assertEqual(response.status_code, HTTPStatus.OK)
             self.assertEqual(
                 len(data.get('dashboards')),
-                len(self.expected_related_dashboard_response.get('dashboards'))
+                len(self.expected_related_dashboard_response['dashboards'])
             )
 
     @responses.activate

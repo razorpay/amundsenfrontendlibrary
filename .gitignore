@@ -7,6 +7,7 @@
 *.egg-info
 .*.swp
 .DS_Store
+.eggs/
 venv/
 venv3/
 .cache/
@@ -16,6 +17,7 @@ build/
 .coverage
 .mypy_cache
 .pytest_cache
+.python-version
 
 
 npm-debug.log

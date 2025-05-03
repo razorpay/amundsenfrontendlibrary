@@ -5,9 +5,8 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import SanitizedHTML from 'react-sanitized-html';
 
-import { logClick } from 'ducks/utilMethods';
-
 import { AnnouncementPost } from 'interfaces';
+import { logClick } from 'utils/analytics';
 import Card from '../../Card';
 
 import {
@@ -39,21 +38,19 @@ const AnnouncementItem: React.FC<AnnouncementPost> = ({
   date,
   title,
   html_content,
-}: AnnouncementPost) => {
-  return (
-    <li className="announcement">
-      <Card
-        title={title}
-        subtitle={date}
-        href={ANNOUNCEMENTS_PAGE_PATH}
-        onClick={logClick}
-        copy={
-          <SanitizedHTML className="announcement-content" html={html_content} />
-        }
-      />
-    </li>
-  );
-};
+}: AnnouncementPost) => (
+  <li className="announcement">
+    <Card
+      title={title}
+      subtitle={date}
+      href={ANNOUNCEMENTS_PAGE_PATH}
+      onClick={logClick}
+      copy={
+        <SanitizedHTML className="announcement-content" html={html_content} />
+      }
+    />
+  </li>
+);
 
 const EmptyAnnouncementItem: React.FC = () => (
   <li className="empty-announcement">{NO_ANNOUNCEMENTS_TEXT}</li>

@@ -8,7 +8,7 @@ import { ResourceType, Tag, SearchType } from 'interfaces';
 
 import { updateSearchState } from 'ducks/search/reducer';
 import { UpdateSearchStateRequest } from 'ducks/search/types';
-import { logClick } from 'ducks/utilMethods';
+import { logClick } from 'utils/analytics';
 
 import './styles.scss';
 
@@ -55,8 +55,8 @@ export class TagInfo extends React.Component<TagInfoProps> {
   }
 }
 
-export const mapDispatchToProps = (dispatch: any) => {
-  return bindActionCreators(
+export const mapDispatchToProps = (dispatch: any) =>
+  bindActionCreators(
     {
       searchTag: (tagName: string) =>
         updateSearchState({
@@ -69,7 +69,6 @@ export const mapDispatchToProps = (dispatch: any) => {
     },
     dispatch
   );
-};
 
 export default connect<null, DispatchFromProps, OwnProps>(
   null,

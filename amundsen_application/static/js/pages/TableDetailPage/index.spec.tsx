@@ -7,16 +7,21 @@ import { mount, shallow } from 'enzyme';
 import { mocked } from 'ts-jest/utils';
 
 import { getMockRouterProps } from 'fixtures/mockRouter';
-import { tableMetadata } from 'fixtures/metadata/table';
+import { tableMetadata, tableLineage } from 'fixtures/metadata/table';
 
 import LoadingSpinner from 'components/LoadingSpinner';
 import TabsComponent from 'components/TabsComponent';
 
-import { indexDashboardsEnabled } from 'config/config-utils';
+import {
+  indexDashboardsEnabled,
+  isTableListLineageEnabled,
+} from 'config/config-utils';
+import { TABLE_TAB } from './constants';
 import { TableDetail, TableDetailProps, MatchProps } from '.';
 
 jest.mock('config/config-utils', () => ({
   indexDashboardsEnabled: jest.fn(),
+  isTableListLineageEnabled: jest.fn(),
   getTableSortCriterias: jest.fn(),
 }));
 
@@ -34,12 +39,14 @@ const setup = (
     location
   );
   const props = {
+    tableLineage,
     isLoading: false,
     isLoadingDashboards: false,
     numRelatedDashboards: 0,
     statusCode: 200,
     tableData: tableMetadata,
     getTableData: jest.fn(),
+    getTableLineageDispatch: jest.fn(),
     openRequestDescriptionDialog: jest.fn(),
     searchSchema: jest.fn(),
     ...routerProps,
@@ -57,16 +64,42 @@ describe('TableDetail', () => {
     beforeAll(() => {
       wrapper = setup().wrapper;
     });
-    it('renders one tab when dashboards are not enabled', () => {
+    it('does not render dashboard tab when disabled', () => {
       mocked(indexDashboardsEnabled).mockImplementation(() => false);
       const content = shallow(<div>{wrapper.instance().renderTabs()}</div>);
-      expect(content.find(TabsComponent).props().tabs.length).toEqual(1);
+      const tabInfo = content.find(TabsComponent).props().tabs;
+      expect(
+        tabInfo.find((tab) => tab.key === TABLE_TAB.DASHBOARD)
+      ).toBeFalsy();
     });
 
     it('renders two tabs when dashboards are enabled', () => {
       mocked(indexDashboardsEnabled).mockImplementation(() => true);
       const content = shallow(<div>{wrapper.instance().renderTabs()}</div>);
-      expect(content.find(TabsComponent).props().tabs.length).toEqual(2);
+      const tabInfo = content.find(TabsComponent).props().tabs;
+      expect(
+        tabInfo.find((tab) => tab.key === TABLE_TAB.DASHBOARD)
+      ).toBeTruthy();
+    });
+    it('does not render upstream and downstream tabs when disabled', () => {
+      mocked(isTableListLineageEnabled).mockImplementation(() => false);
+      const content = shallow(<div>{wrapper.instance().renderTabs()}</div>);
+      const tabInfo = content.find(TabsComponent).props().tabs;
+      expect(tabInfo.find((tab) => tab.key === TABLE_TAB.UPSTREAM)).toBeFalsy();
+      expect(
+        tabInfo.find((tab) => tab.key === TABLE_TAB.DOWNSTREAM)
+      ).toBeFalsy();
+    });
+    it('renders upstream and downstream tabs when enabled', () => {
+      mocked(isTableListLineageEnabled).mockImplementation(() => true);
+      const content = shallow(<div>{wrapper.instance().renderTabs()}</div>);
+      const tabInfo = content.find(TabsComponent).props().tabs;
+      expect(
+        tabInfo.find((tab) => tab.key === TABLE_TAB.UPSTREAM)
+      ).toBeTruthy();
+      expect(
+        tabInfo.find((tab) => tab.key === TABLE_TAB.DOWNSTREAM)
+      ).toBeTruthy();
     });
   });
 
